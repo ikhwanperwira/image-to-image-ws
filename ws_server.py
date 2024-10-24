@@ -20,7 +20,7 @@ print(f"Server height: {SERVER_HEIGHT}")
 print(f"Server JPG compression: {SERVER_JPG_COMPRESSION}")
 
 
-async def process_image(websocket):
+async def process_image(websocket, path):
   async for message in websocket:
     # Decode the message to a numpy array
     nparr = np.frombuffer(message, np.uint8)
