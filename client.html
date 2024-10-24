@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WebSocket Image Stream</title>
+</head>
+<body>
+    <video id="video" width="##CLIENT_WIDTH##" height="##CLIENT_HEIGHT##" autoplay></video>
+    <canvas id="canvas" width="##CLIENT_WIDTH##" height="##CLIENT_HEIGHT##" style="display:none;"></canvas> <!-- Hidden canvas, Think canvas as preprocessing in client side -->
+    <img id="output" width="##CLIENT_WIDTH##" height="##CLIENT_HEIGHT##" />
+
+    <script>
+        // Client-side parameters from .env
+        const CLIENT_WIDTH = ##CLIENT_WIDTH##;  // Width will be replaced
+        const CLIENT_HEIGHT = ##CLIENT_HEIGHT##;  // Height will be replaced
+        const CLIENT_JPG_COMPRESSION = ##CLIENT_JPG_COMPRESSION##;  // Compression will be replaced
+
+        const video = document.getElementById('video');
+        const canvas = document.getElementById('canvas');
+        const context = canvas.getContext('2d');
+        const output = document.getElementById('output');
+        const socket = new WebSocket(`ws://${window.location.hostname}:6969`); // Use the WS_PORT from .env
+
+        socket.binaryType = 'arraybuffer';
+
+        // Start the webcam
+        navigator.mediaDevices.getUserMedia({ video: true })
+            .then(stream => {
+                video.srcObject = stream;
+                video.play();
+                captureImage();
+            })
+            .catch(err => console.error("Error accessing webcam: ", err));
+
+        function captureImage() {
+            context.drawImage(video, 0, 0, CLIENT_WIDTH, CLIENT_HEIGHT); // Use CLIENT_WIDTH and CLIENT_HEIGHT
+            canvas.toBlob(blob => {
+                socket.send(blob);
+            }, 'image/jpeg', CLIENT_JPG_COMPRESSION); // Use CLIENT_JPG_COMPRESSION
+            requestAnimationFrame(captureImage);
+        }
+
+        socket.onmessage = function(event) {
+            const arrayBuffer = event.data;
+            const blob = new Blob([arrayBuffer], { type: 'image/jpeg' });
+            const url = URL.createObjectURL(blob);
+            output.src = url;
+        };
+    </script>
+</body>
+</html>
